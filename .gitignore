@@ -2,5 +2,6 @@
 .bash_history
 .lesshst
 .ssh/known_hosts
+.ssh/authorized_keys
 .viminfo
 .vimrc
