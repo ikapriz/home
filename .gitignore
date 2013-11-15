@@ -3,6 +3,7 @@
 .lesshst
 .ssh/known_hosts
 .ssh/authorized_keys
+.ssh/id_rsa
 .viminfo
 .vimrc
 .bash_logout
