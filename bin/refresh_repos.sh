@@ -6,10 +6,12 @@ for i in $(cat ~/bin/repo_list)
 do
 	if [[ -d $i ]]
 	then
+		echo "Refreshing $i"
 		cd $i
 		git checkout master
 		git pull
 	else
+		echo "Cloning $i"
 		organization=${i%%\/*}
 		repo=${i##*\/}
 		echo $organization
