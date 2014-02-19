@@ -1,7 +1,9 @@
 DB-OPS/mongodba
 DB-OPS/postgresdba
+DB-OPS/dba_phone
 DB-OPS-QAC1/mongodba
 DB-OPS-QAC1/postgresdba
+DB-OPS-QAC1/dba_phone
 OPS/postgresql
 OPS/authorization
 OPS/ingestion
