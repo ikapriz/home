@@ -11,8 +11,3 @@ OPS/authorization
 OPS/ingestion
 OPS/iheart-chef
 OPS/mongodb
-OPS-QAC1/postgresql
-OPS-QAC1/authorization
-OPS-QAC1/ingestion
-OPS-QAC1/iheart-chef
-OPS-QAC1/mongodb
