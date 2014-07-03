@@ -10,6 +10,6 @@ alias elastic3="ssh ec2-user@184.73.182.99"
 
 PS1="[\u@\h \W]\$ "
 
-export PATH=.:$PATH
+export PATH=.:/opt/chef/bin:$PATH
 
 umask 0022
