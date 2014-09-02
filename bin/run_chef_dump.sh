@@ -30,7 +30,7 @@ function usage {
 host=''
 port=''
 days=60
-dir='/data/db/backups'
+dir='/data/backups'
 
 # Parse the parameters
 while getopts ":h:p:f:s:d:" opt; do
@@ -63,6 +63,72 @@ OUT="$LOGDIR/out"
 ERR="$LOGDIR/err"
 
 trap "rm -rf $LOGDIR $LOCKFILE" EXIT
+
 LOG="/var/log/chefdba/${BASENAME}_${sdate}_${port}.log"
 
+exec > >(tee $LOG)
 
+# Create backup directory
+dir="$dir/${BASENAME}_${sdate}"
+
+mkdir $dir >$OUT 2>$ERR
+RETCODE=$?
+
+echo -n "Creating backup directory $dir: "
+if [[ $RETCODE -ne 0 ]]
+then
+	echo  "FAIL"
+	cat $OUT
+	cat $ERR
+else
+	echo "OK"
+fi
+
+COMPONENT='node'
+COMPDIR="$dir/$COMPONENT"
+
+mkdir $COMPDIR >$OUT 2>$ERR
+RETCODE=$?
+
+echo -n "Creating component directory $COMPDIR: "
+if [[ $RETCODE -ne 0 ]]
+then
+	echo  "FAIL"
+	cat $OUT
+	cat $ERR
+else
+	echo "OK"
+fi
+
+knife node list >$OUT 2>$ERR
+RETCODE=$?
+
+echo -n "Generating list of nodes: "
+if [[ $RETCODE -ne 0 ]]
+then
+	echo  "FAIL"
+	cat $OUT
+	cat $ERR
+else
+	echo "OK"
+fi
+
+for i in $(cat $OUT)
+do
+	knife node edit $i <<-EOD >$OUT 2>$ERR
+		:w $COMPDIR/$i.json
+		:q!
+	EOD
+
+	RETCODE=$?
+
+	echo -n "Dumping node $i: "
+
+	if [[ $RETCODE -ne 0 ]]
+	then
+		echo  "FAIL"
+		cat $ERR
+	else
+		echo "OK"
+	fi
+done
