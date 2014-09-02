@@ -8,6 +8,8 @@ NAGIOS_HOST=$(hostname)
 NAGIOS_HOST=${NAGIOS_HOST%%.*}
 NAGIOS_SERVICE='Mongodb-Backups'
 
+COMPONENTS="node client"
+
 function usage {
         echo $1
 
@@ -84,51 +86,54 @@ else
 	echo "OK"
 fi
 
-COMPONENT='node'
-COMPDIR="$dir/$COMPONENT"
-
-mkdir $COMPDIR >$OUT 2>$ERR
-RETCODE=$?
-
-echo -n "Creating component directory $COMPDIR: "
-if [[ $RETCODE -ne 0 ]]
-then
-	echo  "FAIL"
-	cat $OUT
-	cat $ERR
-else
-	echo "OK"
-fi
-
-knife node list >$OUT 2>$ERR
-RETCODE=$?
-
-echo -n "Generating list of nodes: "
-if [[ $RETCODE -ne 0 ]]
-then
-	echo  "FAIL"
-	cat $OUT
-	cat $ERR
-else
-	echo "OK"
-fi
-
-for i in $(cat $OUT)
+for COMPONENT in $COMPONENTS
 do
-	knife node edit $i <<-EOD >$OUT 2>$ERR
-		:w $COMPDIR/$i.json
-		:q!
-	EOD
+	COMPDIR="$dir/$COMPONENT"
 
+	mkdir $COMPDIR >$OUT 2>$ERR
 	RETCODE=$?
 
-	echo -n "Dumping node $i: "
-
+	echo -n "Creating component directory $COMPDIR: "
 	if [[ $RETCODE -ne 0 ]]
 	then
 		echo  "FAIL"
+		cat $OUT
 		cat $ERR
 	else
 		echo "OK"
 	fi
+
+	knife $COMPONENT list >$OUT 2>$ERR
+	RETCODE=$?
+
+	echo -n "Generating list of ${COMPONENT}s: "
+	if [[ $RETCODE -ne 0 ]]
+	then
+		echo  "FAIL"
+		cat $OUT
+		cat $ERR
+	else
+		echo "OK"
+	fi
+
+	for i in $(cat $OUT)
+	do
+		knife $COMPONENT edit $i <<-EOD >$OUT 2>$ERR
+			:w $COMPDIR/$i.json
+			:q!
+		EOD
+
+		RETCODE=$?
+
+		echo -n "Dumping $COMPONENT $i: "
+
+		if [[ $RETCODE -ne 0 ]]
+		then
+			echo  "FAIL"
+			cat $ERR
+		else
+			echo "OK"
+		fi
+	done
 done
+
