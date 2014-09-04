@@ -8,7 +8,7 @@ NAGIOS_HOST=$(hostname)
 NAGIOS_HOST=${NAGIOS_HOST%%.*}
 NAGIOS_SERVICE='Mongodb-Backups'
 
-COMPONENTS="node client"
+COMPONENTS="cookbook node client role "
 
 function usage {
         echo $1
@@ -63,6 +63,7 @@ LOGDIR=`mktemp -d /var/log/chefdba/mongo_${BASENAME}_XXXXXXX`
 LOCKFILE="/var/log/mongo/${BASENAME}_${port}.lock"
 OUT="$LOGDIR/out"
 ERR="$LOGDIR/err"
+LIST="$LOGDIR/LIST"
 
 trap "rm -rf $LOGDIR $LOCKFILE" EXIT
 
@@ -103,37 +104,69 @@ do
 		echo "OK"
 	fi
 
-	knife $COMPONENT list >$OUT 2>$ERR
-	RETCODE=$?
+	if [[ $COMPONENT == 'cookbook' ]]
+	then
+		knife $COMPONENT list -a >$LIST 2>$ERR
+		RETCODE=$?
+	else
+		knife $COMPONENT list >$LIST 2>$ERR
+		RETCODE=$?
+	fi
 
 	echo -n "Generating list of ${COMPONENT}s: "
 	if [[ $RETCODE -ne 0 ]]
 	then
 		echo  "FAIL"
-		cat $OUT
+		cat $LIST
 		cat $ERR
 	else
 		echo "OK"
 	fi
 
-	for i in $(cat $OUT)
-	do
-		knife $COMPONENT edit $i <<-EOD >$OUT 2>$ERR
-			:w $COMPDIR/$i.json
-			:q!
-		EOD
+	if [[ $COMPONENT == 'cookbook' ]]
+	then
 
-		RETCODE=$?
+		while read cookbook versions 
+		do
+			for v in $versions
+			do
+				echo -n "Dumping $COMPONENT $cookbook version $v: "
+				knife cookbook download $cookbook $v -d $COMPDIR >$OUT 2>$ERR
 
-		echo -n "Dumping $COMPONENT $i: "
+				RETCODE=$?
 
-		if [[ $RETCODE -ne 0 ]]
-		then
-			echo  "FAIL"
-			cat $ERR
-		else
-			echo "OK"
-		fi
-	done
+				if [[ $RETCODE -ne 0 ]]
+				then
+					echo  "FAIL"
+					cat $OUT
+					cat $ERR
+				else
+					echo "OK"
+				fi
+
+			done
+		done < $LIST
+
+	else
+		for i in $(cat $LIST)
+		do
+			knife $COMPONENT edit $i <<-EOD >$OUT 2>$ERR
+				:w $COMPDIR/$i.json
+				:q!
+			EOD
+
+			RETCODE=$?
+
+			echo -n "Dumping $COMPONENT $i: "
+
+			if [[ $RETCODE -ne 0 ]]
+			then
+				echo  "FAIL"
+				cat $ERR
+			else
+				echo "OK"
+			fi
+		done
+	fi
 done
 
