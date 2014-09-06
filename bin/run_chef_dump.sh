@@ -8,7 +8,7 @@ NAGIOS_HOST=$(hostname)
 NAGIOS_HOST=${NAGIOS_HOST%%.*}
 NAGIOS_SERVICE='Mongodb-Backups'
 
-COMPONENTS="cookbook node client role "
+COMPONENTS="environment cookbook node client role "
 
 function usage {
         echo $1
@@ -150,7 +150,7 @@ do
 	else
 		for i in $(cat $LIST)
 		do
-			knife $COMPONENT edit $i <<-EOD >$OUT 2>$ERR
+			knife $COMPONENT edit -e /usr/bin/vi $i <<-EOD >$OUT 2>$ERR
 				:w $COMPDIR/$i.json
 				:q!
 			EOD
