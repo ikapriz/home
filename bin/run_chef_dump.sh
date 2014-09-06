@@ -8,7 +8,7 @@ NAGIOS_HOST=$(hostname)
 NAGIOS_HOST=${NAGIOS_HOST%%.*}
 NAGIOS_SERVICE='Mongodb-Backups'
 
-COMPONENTS="environment cookbook node client role "
+COMPONENTS="databag environment cookbook node client role "
 
 function usage {
         echo $1
@@ -64,6 +64,7 @@ LOCKFILE="/var/log/mongo/${BASENAME}_${port}.lock"
 OUT="$LOGDIR/out"
 ERR="$LOGDIR/err"
 LIST="$LOGDIR/LIST"
+DBAGLIST="$LOGDIR/dbaglist"
 
 trap "rm -rf $LOGDIR $LOCKFILE" EXIT
 
@@ -102,6 +103,11 @@ do
 		cat $ERR
 	else
 		echo "OK"
+	fi
+
+	if [[ $COMPONENT == 'databag' ]]
+	then
+		COMPONENT="data bag"
 	fi
 
 	if [[ $COMPONENT == 'cookbook' ]]
@@ -147,6 +153,62 @@ do
 			done
 		done < $LIST
 
+	elif [[ $COMPONENT == 'data bag' ]]
+	then
+		for i in $(cat $LIST)
+		do
+			DBAGDIR="$COMPDIR/$i"
+			mkdir $DBAGDIR >$OUT 2>$ERR
+
+			RETCODE=$?
+
+			echo -n "Creating data bag directory $DBAGDIR: "
+
+			if [[ $RETCODE -ne 0 ]]
+			then
+				echo  "FAIL"
+				cat $OUT
+				cat $ERR
+			else
+				echo "OK"
+			fi
+
+			knife data bag show $i >$DBAGLIST 2>$ERR
+
+			RETCODE=$?
+
+			echo -n "Creating list if items for data bag $i: "
+
+			if [[ $RETCODE -ne 0 ]]
+			then
+				echo  "FAIL"
+				cat $DBAGLIST
+				cat $ERR
+			else
+				echo "OK"
+			fi
+
+			for item in $(cat $DBAGLIST)
+			do
+				knife $COMPONENT edit $i $item -e /usr/bin/vi  <<-EOD >$OUT 2>$ERR
+					:w $DBAGDIR/$item.json
+					:q!
+				EOD
+
+				RETCODE=$?
+
+				echo -n "Dumping $COMPONENT $i $item: "
+
+				if [[ $RETCODE -ne 0 ]]
+				then
+					echo  "FAIL"
+					cat $OUT
+					cat $ERR
+				else
+					echo "OK"
+				fi
+			done
+		done
 	else
 		for i in $(cat $LIST)
 		do
@@ -162,6 +224,7 @@ do
 			if [[ $RETCODE -ne 0 ]]
 			then
 				echo  "FAIL"
+				cat $OUT
 				cat $ERR
 			else
 				echo "OK"
