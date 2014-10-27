@@ -1,0 +1,38 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+use Data::Dumper qw(Dumper);
+
+print Dumper \@ARGV;
+my %summary;
+
+foreach my $host (@ARGV)
+{
+	my $sysctl_file = "/var/tmp/$host.sysctl.out";
+
+	print "$sysctl_file\n";
+
+	`ssh $host "sudo /sbin/sysctl -a" | sort > /var/tmp/$host.sysctl.out`;
+
+	open(my $fh, "<", "$sysctl_file") 
+		or die "cannot open < $sysctl_file: $!";
+
+	while (<$fh>)
+	{
+		chomp;
+		my ($key, $value) = split (" = ");
+	
+		#if ($key =~ /\.p[2-9]p[1-9]\./)
+		#{
+		#	$key =~ s/\.p[2-9]p([1-9])\./\.p1p$1\./g;
+		#}
+
+		push @{ $summary{$key}{$value} }, $host;
+	}
+	close $fh;
+}
+
+print Dumper \%summary;
+
+
