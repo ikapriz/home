@@ -6,44 +6,96 @@ use Data::Dumper qw(Dumper);
 
 print Dumper \@ARGV;
 my %summary;
+my @interfaces;
 
 foreach my $host (@ARGV)
 {
-	my $sysctl_file = "/var/tmp/$host.sysctl.out";
-
-	print "$sysctl_file\n";
-
-	`ssh $host "sudo /sbin/sysctl -a" | sort > $sysctl_file`;
-
-	open(my $fh, "<", "$sysctl_file") 
-		or die "cannot open $sysctl_file: $!";
-
-	while (<$fh>)
-	{
-		chomp;
-		my ($key, $value) = split (" = ");
-	
-		#if ($key =~ /\.p[2-9]p[1-9]\./)
-		#{
-		#	$key =~ s/\.p[2-9]p([1-9])\./\.p1p$1\./g;
-		#}
-
-		push @{ $summary{$key}{$value} }, $host;
-	}
-	close $fh;
-
 	my $interfaces_file = "/var/tmp/$host.interfaces.out";
 
 	`ssh $host "sudo grep -l up /sys/class/net/*/operstate" > $interfaces_file`;
 
-	open($fh, "<", "$interfaces_file") 
+	open(my $fh, "<", "$interfaces_file") 
 		or die "cannot open $interfaces_file: $!";
 
 	while (<$fh>)
 	{
 		chomp;
 		my $interface=(split (/\//))[4];
-		print "$interface\n";
+
+		if ($interface =~ /\./)
+		{
+			$interface =~ s/\./\//g
+		}
+		
+		push @interfaces, $interface;
+	}
+	close $fh;
+
+	# Push all and default parameters
+
+	push @interfaces, 'all';
+	push @interfaces, 'default';
+	push @interfaces, 'lo';
+
+	my $interfaces_match= '\.(' . join(')\.|\.(', @interfaces) . ')\.';
+
+	print "interfaces_match=$interfaces_match\n";
+
+	# Find all the keys that include any active interface name from the list and make the regexp out of them.
+	# so  net.ipv4.conf.bond0/200.rp_filter becomes ^net\.ipv4\.conf\.[^\.]\.rp_filter$
+
+	my $sysctl_file = "/var/tmp/$host.sysctl.out";
+
+	print "$sysctl_file\n";
+
+	`ssh $host "sudo /sbin/sysctl -a" | sort > $sysctl_file`;
+
+	my %patterns;
+
+	open($fh, "<", "$sysctl_file") 
+		or die "cannot open $sysctl_file: $!";
+
+	while (<$fh>)
+	{
+		chomp;
+		my ($key, $value) = split (" = ");
+
+		if ($key =~ $interfaces_match)
+		{
+			print "Matched $key\n";
+			$key =~ s/$interfaces_match/\\.[^\.]*\\./g;
+			print "Matched pattern $key\n";
+			$patterns{'^' . $key . '$'}=1;
+		}
+	}
+	close $fh;
+
+	my $patterns_match = join('|',  keys %patterns );
+
+	print "patterns_match=$patterns_match\n";
+
+	open($fh, "<", "$sysctl_file") 
+		or die "cannot open $sysctl_file: $!";
+
+	while (<$fh>)
+	{
+		chomp;
+		my ($key, $value) = split (" = ");
+
+		# Matches pattern for interface setting, but des not match any 'up' interface
+
+		if ($key =~ $patterns_match && $key !~ $interfaces_match)
+		{
+			print "Skipped $key\n";
+			next;
+		}
+
+		if ($key =~ /\.p[2-9]p[1-9]\./)
+		{
+			$key =~ s/\.p[2-9]p([1-9])\./\.p1p$1\./g;
+		}
+
+		push @{ $summary{$key}{$value} }, $host;
 	}
 	close $fh;
 }
@@ -61,6 +113,11 @@ foreach my $key (sort keys %summary)
 		{
 			next;
 		}
+		elsif ($hostcount < scalar @{ $summary{$key}{$value} })
+		{
+			print STDERR "WARNING - INVALIDE COUNTS!\n";
+		}
+
 		print "$key = $value : ";
 		print join (",", @{ $summary{$key}{$value} }) . "\n";
 	}
