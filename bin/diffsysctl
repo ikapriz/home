@@ -13,10 +13,10 @@ foreach my $host (@ARGV)
 
 	print "$sysctl_file\n";
 
-	`ssh $host "sudo /sbin/sysctl -a" | sort > /var/tmp/$host.sysctl.out`;
+	`ssh $host "sudo /sbin/sysctl -a" | sort > $sysctl_file`;
 
 	open(my $fh, "<", "$sysctl_file") 
-		or die "cannot open < $sysctl_file: $!";
+		or die "cannot open $sysctl_file: $!";
 
 	while (<$fh>)
 	{
@@ -31,8 +31,40 @@ foreach my $host (@ARGV)
 		push @{ $summary{$key}{$value} }, $host;
 	}
 	close $fh;
+
+	my $interfaces_file = "/var/tmp/$host.interfaces.out";
+
+	`ssh $host "sudo grep -l up /sys/class/net/*/operstate" > $interfaces_file`;
+
+	open($fh, "<", "$interfaces_file") 
+		or die "cannot open $interfaces_file: $!";
+
+	while (<$fh>)
+	{
+		chomp;
+		my $interface=(split (/\//))[4];
+		print "$interface\n";
+	}
+	close $fh;
 }
 
-print Dumper \%summary;
+#print Dumper \%summary;
+
+my $hostcount=$#ARGV + 1;
+
+
+foreach my $key (sort keys %summary)
+{
+	foreach my $value (sort keys %{ $summary{$key} })
+	{
+		if ($hostcount == scalar @{ $summary{$key}{$value} })
+		{
+			next;
+		}
+		print "$key = $value : ";
+		print join (",", @{ $summary{$key}{$value} }) . "\n";
+	}
+}
+
 
 
