@@ -11,7 +11,7 @@ do
 	then
 		echo "Refreshing $i"
 		cd $i
-		git checkout $master
+		git checkout master
 		git pull
 	else
 		echo "Cloning $i"
@@ -23,12 +23,12 @@ do
 		if [[ $repo == 'iheart-chef' || $repo == 'authorization' || $repo == 'ingestion' || $repo == 'postgresql' || $repo == 'mongodb' ]]
 		then
 			git clone "git@github.ihrint.com:${organization}/${repo}.git"
-			git checkout $master
-			git pull
+			git checkout master
+			git pull origin master
 		else
 			git clone "git@github.com:iheartradio/${repo}.git"
-			git checkout $master
-			git pull
+			git checkout master
+			git pull origin master
 		fi
 	fi
 	cd  ~
