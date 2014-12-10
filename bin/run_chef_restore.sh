@@ -8,7 +8,8 @@ NAGIOS_HOST=$(hostname)
 NAGIOS_HOST=${NAGIOS_HOST%%.*}
 NAGIOS_SERVICE='Mongodb-Backups'
 
-COMPONENTS="databag environment cookbook node client role "
+#COMPONENTS="databag environment cookbook node client role "
+COMPONENTS="cookbook"
 
 function usage {
         echo $1
@@ -25,6 +26,75 @@ function usage {
 	echo "		port=<port>"
 	echo "		days=<days>"
         exit $2
+}
+
+function upload_cookbook
+{
+	
+	for i in $*
+	do
+		name=${i%-*.*.*}
+		version=${i##*-}
+
+		knife cookbook create $name -o $COOKBOOKS  >$OUT 2>$ERR
+
+		RETCODE=$?
+
+		echo -n "Creating empty $i ($name $version): "
+
+		if [[ $RETCODE -ne 0 ]]
+		then
+			echo  "FAIL"
+			cat $OUT
+			cat $ERR
+			exit 1
+		else
+			echo "OK"
+		fi
+
+		sed -i "s/0.1.0/$version/" $COOKBOOKS/$name/metadata.rb
+
+		knife cookbook upload $name -o $COOKBOOKS -d >$OUT 2>$ERR
+
+		RETCODE=$?
+
+		echo -n "Uploading empty $i ($name): "
+
+		if [[ $RETCODE -ne 0 ]]
+		then
+			echo  "FAIL"
+			cat $OUT
+			cat $ERR
+			exit 1
+		else
+			echo "OK"
+		fi
+
+		rm -rf $COOKBOOKS/$name
+	done
+	
+	for i in $*
+	do
+		cp -r $COMPDIR/$i $COOKBOOKS/$name
+
+		knife cookbook upload $name -o $COOKBOOKS -d >$OUT 2>$ERR
+
+		RETCODE=$?
+
+		echo -n "Uploading $i ($name): "
+
+		if [[ $RETCODE -ne 0 ]]
+		then
+			echo  "FAIL"
+			cat $OUT
+			cat $ERR
+			exit 1
+		else
+			echo "OK"
+		fi
+
+		rm -rf $COOKBOOKS/$name
+	done
 }
 
 # set defaults
@@ -63,7 +133,8 @@ LOGDIR=`mktemp -d /var/log/chefdba/mongo_${BASENAME}_XXXXXXX`
 LOCKFILE="/var/log/mongo/${BASENAME}_${port}.lock"
 OUT="$LOGDIR/out"
 ERR="$LOGDIR/err"
-LIST="$LOGDIR/LIST"
+COOKBOOKS="$LOGDIR/COOKBOOKS"
+mkdir $COOKBOOKS
 DBAGLIST="$LOGDIR/dbaglist"
 
 trap "rm -rf $LOGDIR $LOCKFILE" EXIT
@@ -83,32 +154,148 @@ do
 
 	if [[ $COMPONENT == 'cookbook' ]]
 	then
+		cookbooks=`ls $COMPDIR| sort -r |tr "\\n" " "`
 
-		while read cookbook versions 
+		upload_cookbook $cookbooks
+
+		exit 1
+
+		for i in $(ls $COMPDIR| sort -r |tr "\\n" " ")
 		do
-			for v in $versions
-			do
-				echo -n "Dumping $COMPONENT $cookbook version $v: "
-				knife cookbook download $cookbook $v -d $COMPDIR >$OUT 2>$ERR
+			if [[ $i = chef_handler* ]]
+			then
+				pre="$pre $i"
+			fi
+		done
 
-				RETCODE=$?
+		for i in $(ls $COMPDIR| sort -r |tr "\\n" " ")
+		do
+			if [[ $i = windows* ]]
+			then
+				pre="$pre $i"
+			fi
+		done
 
-				if [[ $RETCODE -ne 0 ]]
-				then
-					echo  "FAIL"
-					cat $OUT
-					cat $ERR
-				else
-					echo "OK"
-				fi
+		for i in $(ls $COMPDIR| sort -r |tr "\\n" " ")
+		do
+			if [[ $i = sudo* ]]
+			then
+				pre="$pre $i"
+			fi
+		done
 
-			done
-		done < $LIST
+		for i in $(ls $COMPDIR| sort -r |tr "\\n" " ")
+		do
+			if [[ $i = python* ]]
+			then
+				pre="$pre $i"
+			fi
+		done
+
+		for i in $(ls $COMPDIR| sort -r |tr "\\n" " ")
+		do
+			if [[ $i = gunicorn* ]]
+			then
+				pre="$pre $i"
+			fi
+		done
+
+		for i in $(ls $COMPDIR| sort -r |tr "\\n" " ")
+		do
+			if [[ $i = supervisor* ]]
+			then
+				pre="$pre $i"
+			fi
+		done
+
+		for i in $(ls $COMPDIR| sort -r |tr "\\n" " ")
+		do
+			if [[ $i = passenger_apache2* ]]
+			then
+				pre="$pre $i"
+			fi
+		done
+
+		for i in $(ls $COMPDIR| sort -r |tr "\\n" " ")
+		do
+			if [[ $i = application-* ]]
+			then
+				pre="$pre $i"
+			fi
+		done
+
+		for i in $(ls $COMPDIR| sort -r |tr "\\n" " ")
+		do
+			if [[ $i = modules* ]]
+			then
+				pre="$pre $i"
+			fi
+		done
+
+		for i in $(ls $COMPDIR| sort -r |tr "\\n" " ")
+		do
+			if [[ $i = homebrew* ]]
+			then
+				pre="$pre $i"
+			fi
+		done
+
+		for i in $(ls $COMPDIR| sort -r |tr "\\n" " ")
+		do
+			if [[ $i = openssl* ]]
+			then
+				pre="$pre $i"
+			fi
+		done
+
+		for i in $(ls $COMPDIR| sort -r |tr "\\n" " ")
+		do
+			if [[ $i = php* ]]
+			then
+				pre="$pre $i"
+			fi
+		done
+
+		for i in $(ls $COMPDIR| sort -r |tr "\\n" " ")
+		do
+			if [[ $i = nagios-* ]]
+			then
+				pre="$pre $i"
+			fi
+		done
+
+		for i in $(ls $COMPDIR| sort -r |tr "\\n" " ")
+		do
+			if [[ $i = mysql* ]]
+			then
+				pre="$pre $i"
+			fi
+		done
+
+		for i in $(ls $COMPDIR| sort -r |tr "\\n" " ")
+		do
+			if [[ $i = nagios* ]]
+			then
+				pre="$pre $i"
+			fi
+		done
+
+		for i in $(ls $COMPDIR| sort -r |tr "\\n" " ")
+		do
+			if [[ $i = user* || $i = java* || $i = build-essential* || $i = apache2* || $i = rsync* || $i = cron* || $i = hostsfile*
+				|| $i = bondage* 
+				|| $i = application_python* ]]
+			then
+				pre="$pre $i"
+			fi
+		done
+
+		upload_cookbook $pre	
+
+		exit
 
 	elif [[ $COMPONENT == 'data bag' ]]
 	then
-		for i in $(cat $LIST)
-		do
 			DBAGDIR="$COMPDIR/$i"
 			mkdir $DBAGDIR >$OUT 2>$ERR
 
@@ -160,7 +347,6 @@ do
 					echo "OK"
 				fi
 			done
-		done
 	else
 		for i in $(cat $LIST)
 		do
