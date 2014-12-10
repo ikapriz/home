@@ -4,12 +4,9 @@
 MACHINE=`hostname -a`
 BASENAME=`basename $0`
 sdate=`date +'%Y%m%d_%H%M%S'`
-NAGIOS_HOST=$(hostname)
-NAGIOS_HOST=${NAGIOS_HOST%%.*}
-NAGIOS_SERVICE='Mongodb-Backups'
 
 #COMPONENTS="databag environment cookbook node client role "
-COMPONENTS="cookbook"
+COMPONENTS="role node environment cookbook"
 
 function usage {
         echo $1
@@ -158,141 +155,30 @@ do
 
 		upload_cookbook $cookbooks
 
-		exit 1
-
-		for i in $(ls $COMPDIR| sort -r |tr "\\n" " ")
+	elif [[ $COMPONENT == 'environment' || $COMPONENT == 'node' || $COMPONENT == 'role' ]]
+	then
+		for comp in $(ls $COMPDIR)
 		do
-			if [[ $i = chef_handler* ]]
+			if [[ $COMPONENT == 'environment' && $comp = '_default.json' ]]
 			then
-				pre="$pre $i"
+				continue
+			fi
+
+			knife $COMPONENT from file $COMPDIR/$comp >$OUT 2>$ERR
+
+			RETCODE=$?
+
+			echo -n "Uploading $COMPONENT $comp: "
+
+			if [[ $RETCODE -ne 0 ]]
+			then
+				echo  "FAIL"
+				cat $OUT
+				cat $ERR
+			else
+				echo "OK"
 			fi
 		done
-
-		for i in $(ls $COMPDIR| sort -r |tr "\\n" " ")
-		do
-			if [[ $i = windows* ]]
-			then
-				pre="$pre $i"
-			fi
-		done
-
-		for i in $(ls $COMPDIR| sort -r |tr "\\n" " ")
-		do
-			if [[ $i = sudo* ]]
-			then
-				pre="$pre $i"
-			fi
-		done
-
-		for i in $(ls $COMPDIR| sort -r |tr "\\n" " ")
-		do
-			if [[ $i = python* ]]
-			then
-				pre="$pre $i"
-			fi
-		done
-
-		for i in $(ls $COMPDIR| sort -r |tr "\\n" " ")
-		do
-			if [[ $i = gunicorn* ]]
-			then
-				pre="$pre $i"
-			fi
-		done
-
-		for i in $(ls $COMPDIR| sort -r |tr "\\n" " ")
-		do
-			if [[ $i = supervisor* ]]
-			then
-				pre="$pre $i"
-			fi
-		done
-
-		for i in $(ls $COMPDIR| sort -r |tr "\\n" " ")
-		do
-			if [[ $i = passenger_apache2* ]]
-			then
-				pre="$pre $i"
-			fi
-		done
-
-		for i in $(ls $COMPDIR| sort -r |tr "\\n" " ")
-		do
-			if [[ $i = application-* ]]
-			then
-				pre="$pre $i"
-			fi
-		done
-
-		for i in $(ls $COMPDIR| sort -r |tr "\\n" " ")
-		do
-			if [[ $i = modules* ]]
-			then
-				pre="$pre $i"
-			fi
-		done
-
-		for i in $(ls $COMPDIR| sort -r |tr "\\n" " ")
-		do
-			if [[ $i = homebrew* ]]
-			then
-				pre="$pre $i"
-			fi
-		done
-
-		for i in $(ls $COMPDIR| sort -r |tr "\\n" " ")
-		do
-			if [[ $i = openssl* ]]
-			then
-				pre="$pre $i"
-			fi
-		done
-
-		for i in $(ls $COMPDIR| sort -r |tr "\\n" " ")
-		do
-			if [[ $i = php* ]]
-			then
-				pre="$pre $i"
-			fi
-		done
-
-		for i in $(ls $COMPDIR| sort -r |tr "\\n" " ")
-		do
-			if [[ $i = nagios-* ]]
-			then
-				pre="$pre $i"
-			fi
-		done
-
-		for i in $(ls $COMPDIR| sort -r |tr "\\n" " ")
-		do
-			if [[ $i = mysql* ]]
-			then
-				pre="$pre $i"
-			fi
-		done
-
-		for i in $(ls $COMPDIR| sort -r |tr "\\n" " ")
-		do
-			if [[ $i = nagios* ]]
-			then
-				pre="$pre $i"
-			fi
-		done
-
-		for i in $(ls $COMPDIR| sort -r |tr "\\n" " ")
-		do
-			if [[ $i = user* || $i = java* || $i = build-essential* || $i = apache2* || $i = rsync* || $i = cron* || $i = hostsfile*
-				|| $i = bondage* 
-				|| $i = application_python* ]]
-			then
-				pre="$pre $i"
-			fi
-		done
-
-		upload_cookbook $pre	
-
-		exit
 
 	elif [[ $COMPONENT == 'data bag' ]]
 	then
@@ -308,6 +194,7 @@ do
 				echo  "FAIL"
 				cat $OUT
 				cat $ERR
+				exit 1
 			else
 				echo "OK"
 			fi
