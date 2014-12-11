@@ -6,7 +6,7 @@ BASENAME=`basename $0`
 sdate=`date +'%Y%m%d_%H%M%S'`
 
 #COMPONENTS="databag environment cookbook node client role "
-COMPONENTS="databag environment cookbook node role "
+COMPONENTS="cookbook databag environment node role "
 
 function usage {
         echo $1
@@ -51,7 +51,7 @@ function upload_cookbook
 
 		sed -i "s/0.1.0/$version/" $COOKBOOKS/$name/metadata.rb
 
-		knife cookbook upload $name -o $COOKBOOKS -d >$OUT 2>$ERR
+		knife cookbook upload $name -o $COOKBOOKS  >$OUT 2>$ERR
 
 		RETCODE=$?
 
@@ -72,9 +72,12 @@ function upload_cookbook
 	
 	for i in $*
 	do
-		cp -r $COMPDIR/$i $COOKBOOKS/$name
+		name=${i%-*.*.*}
+		version=${i##*-}
 
-		knife cookbook upload $name -o $COOKBOOKS -d >$OUT 2>$ERR
+		cp -r $COMPDIR/$i $COOKBOOKS/$name
+	
+		knife cookbook upload $name -o $COOKBOOKS  >$OUT 2>$ERR
 
 		RETCODE=$?
 
@@ -87,6 +90,8 @@ function upload_cookbook
 			cat $ERR
 			exit 1
 		else
+			cat $OUT
+			cat $ERR
 			echo "OK"
 		fi
 
