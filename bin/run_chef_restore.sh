@@ -6,7 +6,7 @@ BASENAME=`basename $0`
 sdate=`date +'%Y%m%d_%H%M%S'`
 
 #COMPONENTS="databag environment cookbook node client role "
-COMPONENTS="role node environment cookbook"
+COMPONENTS="databag environment cookbook node role "
 
 function usage {
         echo $1
@@ -132,6 +132,8 @@ OUT="$LOGDIR/out"
 ERR="$LOGDIR/err"
 COOKBOOKS="$LOGDIR/COOKBOOKS"
 mkdir $COOKBOOKS
+DATABAGS="$LOGDIR/DATABAGS"
+mkdir $DATABAGS
 DBAGLIST="$LOGDIR/dbaglist"
 
 trap "rm -rf $LOGDIR $LOCKFILE" EXIT
@@ -182,12 +184,14 @@ do
 
 	elif [[ $COMPONENT == 'data bag' ]]
 	then
-			DBAGDIR="$COMPDIR/$i"
-			mkdir $DBAGDIR >$OUT 2>$ERR
+
+		for dbag in $(ls $COMPDIR)
+		do
+			knife data bag create $dbag >$OUT 2>$ERR
 
 			RETCODE=$?
 
-			echo -n "Creating data bag directory $DBAGDIR: "
+			echo -n "Creating data bag $dbag: "
 
 			if [[ $RETCODE -ne 0 ]]
 			then
@@ -199,61 +203,45 @@ do
 				echo "OK"
 			fi
 
-			knife data bag show $i >$DBAGLIST 2>$ERR
-
-			RETCODE=$?
-
-			echo -n "Creating list if items for data bag $i: "
-
-			if [[ $RETCODE -ne 0 ]]
-			then
-				echo  "FAIL"
-				cat $DBAGLIST
-				cat $ERR
-			else
-				echo "OK"
-			fi
-
-			for item in $(cat $DBAGLIST)
+			for item in $(ls "$COMPDIR/$dbag")
 			do
-				knife $COMPONENT edit $i $item -e /usr/bin/vi  <<-EOD >$OUT 2>$ERR
-					:w $DBAGDIR/$item.json
-					:q!
-				EOD
+				itemfile="$COMPDIR/$dbag/$item"
+				python -c "import json,sys;json_data=open('$itemfile');obj=json.load(json_data);print json.dumps(obj[\"raw_data\"])" > $DATABAGS/$item 2>$ERR
 
 				RETCODE=$?
 
-				echo -n "Dumping $COMPONENT $i $item: "
+				echo -n "Decoding data bag $dbag item $item: "
+
+				if [[ $RETCODE -ne 0 ]]
+				then
+					echo  "FAIL"
+					cat $DATABAGS/$item
+					cat $ERR
+					exit 1
+				else
+					echo "OK"
+				fi
+
+				knife data bag from file $dbag $DATABAGS/$item >$OUT 2>$ERR
+
+				RETCODE=$?
+
+				echo -n "Uploading data bag $dbag item $item: "
 
 				if [[ $RETCODE -ne 0 ]]
 				then
 					echo  "FAIL"
 					cat $OUT
 					cat $ERR
+					exit 1
 				else
 					echo "OK"
 				fi
+
+				rm -rf $DATABAGS/$item
+
 			done
-	else
-		for i in $(cat $LIST)
-		do
-			knife $COMPONENT edit -e /usr/bin/vi $i <<-EOD >$OUT 2>$ERR
-				:w $COMPDIR/$i.json
-				:q!
-			EOD
 
-			RETCODE=$?
-
-			echo -n "Dumping $COMPONENT $i: "
-
-			if [[ $RETCODE -ne 0 ]]
-			then
-				echo  "FAIL"
-				cat $OUT
-				cat $ERR
-			else
-				echo "OK"
-			fi
 		done
 	fi
 done
