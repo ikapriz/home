@@ -20,16 +20,15 @@ do
 
 		cd $organization
 
-		if [[ $repo == 'iheart-chef' || $repo == 'authorization' || $repo == 'ingestion' || $repo == 'postgresql' || $repo == 'mongodb' ]]
+		if [[  $repo == 'ingestion' ]]
 		then
-			git clone "git@github.ihrint.com:${organization}/${repo}.git"
-			git checkout master
-			git pull origin master
+			git clone "git@github.com:iheartradio/postgresingestion.git" ingestion
 		else
 			git clone "git@github.com:iheartradio/${repo}.git"
-			git checkout master
-			git pull origin master
 		fi
+
+		git checkout master
+		git pull origin master
 	fi
 	cd  ~
 done
