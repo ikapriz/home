@@ -5,8 +5,4 @@ OPS/dba_phone
 OPS/commondba
 OPS/feed_processing
 OPS/feed_gate
-OPS/postgresql
-OPS/authorization
-OPS/ingestion
 OPS/iheart-chef
-OPS/mongodb
