@@ -18,7 +18,6 @@ foreach my $env (@chef_servers)
 
 foreach my $var (@ARGV)
 {
-	print "Checking cookbook $var ...\n";
 	foreach my $server (@chef_servers)
 	{
 		my $out=`knife cookbook show $var -c ~/knife/knife.${server}.rb`;
