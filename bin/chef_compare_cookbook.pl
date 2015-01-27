@@ -54,6 +54,14 @@ foreach my $var (@ARGV)
 			}
 		}
 	}
+
+	for my $i (0..$#chef_servers-1)
+	{ 
+		my $diffcmd="diff -r $dir/" . $chef_servers[$i] . " $dir/" . $chef_servers[$i+1];
+		print "$diffcmd\n\n";
+		print `$diffcmd`;
+	}
+
 }
 
 
