@@ -22,7 +22,6 @@ foreach my $var (@ARGV)
 	foreach my $server (@chef_servers)
 	{
 		my $out=`knife cookbook show $var -c ~/knife/knife.${server}.rb`;
-		print $out;
 		
 		chomp $out;
 		
@@ -31,9 +30,13 @@ foreach my $var (@ARGV)
 			my @version=split(/ +/, $out);
 			shift @version;
 
+			if ($#version > 0)
+			{
+				print "Cookbook $var has $out versions on server $server\n";
+			}
+
 			foreach my $ver (@version)
 			{
-				print "$ver\n";
 				my $out = `knife cookbook download $var $ver -c ~/knife/knife.${server}.rb -d $dir/$server`;
 
 				if ($? == 0)
