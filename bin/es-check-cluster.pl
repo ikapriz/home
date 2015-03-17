@@ -10,10 +10,12 @@ my $data   = "file.dat";
 my $length = 24;
 my $verbose;
 my $restart;
+my $nowait=0;
 
 GetOptions ("length=i" => \$length,    # numeric
 		   "file=s"   => \$data,      # string
 		   "verbose"  => \$verbose,  # flag
+		   "nowait"  => \$nowait,  # flag
 		   "restart" => \$restart)
 or die "Incorrect usage!\n";
 
@@ -109,6 +111,31 @@ for my $cluster (@ARGV)
 			print "Starting elasticsearch\n";
 
 			print `ssh $ip "sudo /sbin/service elasticsearch start"`;
+
+			if (! $nowait)
+			{
+				my $status=es_status($eshost);
+				my $n=10;
+
+				while ($status ne 'green' && $n > 0) 
+				{
+					if ($n % 60 == 0)
+					{
+						print "$n status=$status ... waiting for green\n";
+					}
+					$n-=1;
+					$status=es_status($eshost);
+					sleep (1);
+				}
+
+				print "$n status=$status\n";
+
+				if ($n <= 0)
+				{
+					print "Error: Cluster is still $status, please restart manually!\n";
+					exit;
+				}
+			}
 		}
 	}
 }
