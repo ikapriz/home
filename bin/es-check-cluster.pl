@@ -11,11 +11,13 @@ my $length = 24;
 my $verbose;
 my $restart;
 my $nowait=0;
+my $removetags=0;
 
 GetOptions ("length=i" => \$length,    # numeric
 		   "file=s"   => \$data,      # string
 		   "verbose"  => \$verbose,  # flag
 		   "nowait"  => \$nowait,  # flag
+		   "removetags"  => \$removetags,  # flag
 		   "restart" => \$restart)
 or die "Incorrect usage!\n";
 
