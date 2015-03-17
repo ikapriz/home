@@ -9,15 +9,28 @@ use JSON;
 my $data   = "file.dat";
 my $length = 24;
 my $verbose;
+my $restart;
 
 GetOptions ("length=i" => \$length,    # numeric
 		   "file=s"   => \$data,      # string
-		   "verbose"  => \$verbose)  # flag
+		   "verbose"  => \$verbose,  # flag
+		   "restart" => \$restart)
 or die "Incorrect usage!\n";
 
 if ($verbose)
 {
 	print Dumper \@ARGV;
+}
+
+sub es_status 
+{
+	my ($esnode) = @_;
+
+	my $json=`curl -s -XGET "http://$esnode:9200/_cluster/health?pretty=true"`;
+
+	my $status = decode_json($json);
+
+	return $$status{'status'};
 }
 
 for my $cluster (@ARGV)
@@ -69,16 +82,33 @@ for my $cluster (@ARGV)
 
 		print "eshost=$eshost\n";
 
-		$json=`curl -s -XGET "http://$eshost:9200/_cluster/health?pretty=true"`;
-
-		my $status = decode_json($json);
-
-		print "status=" . $$status{'status'} ."\n";
+		print "status=" . es_status($eshost)  ."\n";
 
 		if ($verbose)
 		{
 			print `curl -XGET "http://$eshost:9200/_cluster/health?pretty=true"`;
 		}
- 
+
+		if ($restart)
+		{
+			while ($p ne "")
+			{
+				print "Killing process $p\n";
+				my $o=`ssh $ip "sudo kill $p"`;
+				chomp $o;
+
+				if ($o ne "")
+				{
+					print "$o\n";
+				}
+				$p=`ssh $ip "ps -ef" | grep elas | awk '{print \$2}'`;
+				chomp $p;
+			}
+
+			print "Killed\n";
+			print "Starting elasticsearch\n";
+
+			print `ssh $ip "sudo /sbin/service elasticsearch start"`;
+		}
 	}
 }
