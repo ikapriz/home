@@ -110,6 +110,9 @@ for my $cluster (@ARGV)
 			}
 
 			print "Killed\n";
+			my $sec=2;
+			print "Sleeping for $sec seconds\n";
+
 			print "Starting elasticsearch\n";
 
 			print `ssh $ip "sudo /sbin/service elasticsearch start"`;
