@@ -2,10 +2,10 @@
 export GIT_EDITOR=vim
 export EDITOR=vim
 
-alias dg="dig axfr @10.5.32.21 ihr" 
-alias dgq="dig axfr @10.5.32.21 qa.cloud.ihr" 
-alias dgp="dig axfr @10.5.32.21 prod.cloud.ihr" 
-alias dgc="dig axfr @10.5.32.21 cloud.ihr" 
+alias dg="dig axfr @10.5.41.62 ihr" 
+alias dgq="dig axfr @10.5.41.62 qa.cloud.ihr" 
+alias dgp="dig axfr @10.5.41.62 prod.cloud.ihr" 
+alias dgc="dig axfr @10.5.41.62 cloud.ihr" 
 
 alias vi=vim
 alias elastic1="ssh ec2-user@107.20.168.221"
