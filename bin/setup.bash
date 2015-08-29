@@ -48,18 +48,23 @@ then
 		then
 			exit 1
 		fi
-
-		rm -rf $encoded
-
-		if [[ $? -ne 0 ]]
-		then
-			exit 1
-		fi
 	done
 fi
 
-for dot in $(find . -name "dot.*")
+read -p "Move config files to $base - please enter Y or N: " -n 1 -r
+
+echo $REPLY;
+
+echo    # (optional) move to a new line
+if [[ ! $REPLY =~ ^[Yy]$ ]]
+then
+    exit 1
+fi
+
+for sourcefile in $(find .)
 do
-	echo $dot
+	echo $sourcefile
+	destfile="${base}${sourcefile#.}"
+	echo $destfile
 done
 
